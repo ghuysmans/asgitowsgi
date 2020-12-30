@@ -26,7 +26,6 @@ class ASGItoWSGIAdapter(object):
     def __call__(self, environ, start_response):
         return_bytes = []
         message = self.environ_to_message(environ)
-        asgi_coroutine = self.asgi(message)
 
         async def send(msg):
             if msg['type'] == 'http.response.start':
@@ -47,7 +46,7 @@ class ASGItoWSGIAdapter(object):
             }
 
         try:
-            self.loop.run_until_complete(asgi_coroutine(receive, send))
+            self.loop.run_until_complete(self.asgi(message, receive, send))
         except Exception:
             if self.raise_exceptions:
                 raise
@@ -59,6 +58,7 @@ class ASGItoWSGIAdapter(object):
         WSGI environ -> ASGI message
         """
         message = {
+            'type': 'http',
             'method': environ['REQUEST_METHOD'].upper(),
             'root_path': environ.get('SCRIPT_NAME', ''),
             'path': environ.get('PATH_INFO', ''),
